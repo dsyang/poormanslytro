@@ -12,10 +12,7 @@ import android.util.Log;
 import android.view.*;
 import android.widget.Button;
 
-import java.io.ByteArrayOutputStream;
 import java.io.IOException;
-import java.lang.annotation.Target;
-import java.nio.IntBuffer;
 import java.util.List;
 
 /**
@@ -31,7 +28,6 @@ public class ScouterFragment extends Fragment {
     private Camera mCamera;
     private SurfaceView mSurfaceView;
     private View mProgressContainer;
-    private MediaPlayer mPlayer;
 
     /** A simple algorithm to get the largest size available. For a more
      * robust version, see CameraPreview.java in the ApiDemos
@@ -53,10 +49,6 @@ public class ScouterFragment extends Fragment {
         return new ScouterFragment();
     }
 
-    private void playQuestion() {
-        mPlayer.seekTo(5500);
-        mPlayer.start();
-    }
     @TargetApi(9)
     @Override
     public void onResume() {
@@ -83,8 +75,6 @@ public class ScouterFragment extends Fragment {
         super.onCreateView(inflater, container, savedInstanceState);
 
         View v = inflater.inflate(R.layout.fragment_scouter,container, false);
-
-        mPlayer.create(getActivity().getApplicationContext(), R.raw.vegeta);
 
         Button scanButton = (Button) v.findViewById(R.id.scouter_takePicture);
         scanButton.setOnClickListener(new View.OnClickListener() {
