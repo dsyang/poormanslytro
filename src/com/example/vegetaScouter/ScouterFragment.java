@@ -1,14 +1,19 @@
 package com.example.vegetaScouter;
 
 import android.annotation.TargetApi;
+import android.content.ContentValues;
 import android.content.Context;
+import android.content.Intent;
+import android.database.Cursor;
 import android.graphics.*;
 import android.hardware.Camera;
 import android.media.MediaActionSound;
 import android.media.MediaPlayer;
+import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
 import android.os.Environment;
+import android.provider.MediaStore;
 import android.support.v4.app.Fragment;
 import android.util.Log;
 import android.view.*;
@@ -37,6 +42,7 @@ public class ScouterFragment extends Fragment {
     private View mProgressContainer;
     private int mFocusAreaIndex;
     private ArrayList<Camera.Area> mFocusAreas;
+    private ArrayList<String> mPicturePaths;
     /** A simple algorithm to get the largest size available. For a more
      * robust version, see CameraPreview.java in the ApiDemos
      * sample app from Android. */
@@ -81,6 +87,32 @@ public class ScouterFragment extends Fragment {
             mProgressContainer.setVisibility(View.VISIBLE);
         }
     };
+
+    public static Uri getImageContentUri(Context context, File imageFile) {
+        String filePath = imageFile.getAbsolutePath();
+        Cursor cursor = context.getContentResolver().query(
+                MediaStore.Images.Media.EXTERNAL_CONTENT_URI,
+                new String[] { MediaStore.Images.Media._ID },
+                MediaStore.Images.Media.DATA + "=? ",
+                new String[] { filePath }, null);
+        if (cursor != null && cursor.moveToFirst()) {
+            int id = cursor.getInt(cursor
+                    .getColumnIndex(MediaStore.MediaColumns._ID));
+            Uri baseUri = Uri.parse("content://media/external/images/media");
+            return Uri.withAppendedPath(baseUri, "" + id);
+        } else {
+            if (imageFile.exists()) {
+                ContentValues values = new ContentValues();
+                values.put(MediaStore.Images.Media.DATA, filePath);
+                return context.getContentResolver().insert(
+                        MediaStore.Images.Media.EXTERNAL_CONTENT_URI, values);
+            } else {
+                return null;
+            }
+        }
+    }
+
+
     private Camera.PictureCallback mSaveCb = new Camera.PictureCallback() {
         @Override
         public void onPictureTaken(byte[] data, Camera camera) {
@@ -90,12 +122,13 @@ public class ScouterFragment extends Fragment {
             Log.e(TAG, path);
             boolean success = true;
             FileOutputStream os = null;
+            File out = null;
             try {
-                File out = new File(path + "/" + mFocusAreaIndex + "--" + filename);
+                out = new File(path + "/" + mFocusAreaIndex + "--" + filename);
                 Log.e(TAG, "writing photo: " + mFocusAreaIndex + "--" + filename);
                 os = new FileOutputStream(out);
                 os.write(data);
-                //BitmapFactory.decodeStream(os);
+                mPicturePaths.add(path + "/" + mFocusAreaIndex + "--" + filename);
             } catch (Exception e) {
                 Log.e(TAG, "Error writing to file stream", e);
                 success = false;
@@ -115,6 +148,20 @@ public class ScouterFragment extends Fragment {
 
             mFocusAreaIndex++;
             if(mFocusAreaIndex >= mFocusAreas.size()) {
+                //Intent i = new Intent();
+                //i.setAction(Intent.ACTION_VIEW);
+                //Log.e(TAG, Uri.parse("file:/" + path + "/0--" + filename).toString());
+                //i.setDataAndType("content:/" + path + "/", "image/*");
+                //i.setDataAndType(getImageContentUri(getActivity().getApplicationContext(), out)
+//                        , "image/jpeg");
+//                startActivity(i);
+
+                Intent intent = new Intent(getActivity(), ImageViewActivity.class);
+                intent.putExtra(ImageViewFragment.EXTRA_PIC_1, mPicturePaths.get(0));
+                intent.putExtra(ImageViewFragment.EXTRA_PIC_2, mPicturePaths.get(1));
+                intent.putExtra(ImageViewFragment.EXTRA_PIC_3, mPicturePaths.get(2));
+                intent.putExtra(ImageViewFragment.EXTRA_PIC_4, mPicturePaths.get(3));
+                startActivity(intent);
                 getActivity().finish();
             } else {
                 mCamera.stopPreview();
@@ -156,7 +203,7 @@ public class ScouterFragment extends Fragment {
         super.onCreateView(inflater, container, savedInstanceState);
 
         View v = inflater.inflate(R.layout.fragment_scouter,container, false);
-
+        mPicturePaths = new ArrayList<String>();
         Button scanButton = (Button) v.findViewById(R.id.scouter_takePicture);
         scanButton.setOnClickListener(new View.OnClickListener() {
             @Override
